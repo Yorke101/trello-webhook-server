@@ -20,8 +20,6 @@ app.get("/", (req, res) => {
 // ✅ Trello webhook POST handler
 app.post("/trello-webhook", async (req, res) => {
   console.log("Webhook received");
-  console.log("Payload:", JSON.stringify(req.body, null, 2));
-
   const action = req.body.action;
   const card = action?.data?.card;
 
@@ -34,8 +32,6 @@ app.post("/trello-webhook", async (req, res) => {
   const cardUrl = card.shortLink
     ? `https://trello.com/c/${card.shortLink}`
     : "https://trello.com";
-  const dueDate = card.due ? new Date(card.due).toLocaleString() : "No due date";
-
   const listBeforeRaw = action?.data?.listBefore?.name || "Unknown";
   const listAfterRaw = action?.data?.listAfter?.name || "Unknown";
   const listBefore = listBeforeRaw.trim().toLowerCase();
@@ -47,42 +43,58 @@ app.post("/trello-webhook", async (req, res) => {
 
   console.log(`Card "${cardName}" moved from "${listBeforeRaw}" to "${listAfterRaw}"`);
 
-  if (importantLists.includes(listBefore) && importantLists.includes(listAfter)) {
-    let members = "No members assigned";
-    if (card.idMembers?.length) {
-      const memberNames = await getMemberNames(card.idMembers);
-      members = memberNames.length ? memberNames.join(", ") : members;
+  // ✅ Format due date
+  let dueDate = "No due date";
+  if (card.due) {
+    try {
+      dueDate = new Date(card.due).toLocaleString("en-ZA", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    } catch (err) {
+      console.error("Date parsing error:", err.message);
     }
-
-    let customMessage = `Card moved from "${listBeforeRaw}" to "${listAfterRaw}"`;
-
-    if (listAfter === "approval") {
-      customMessage += listBefore === "completed"
-        ? " — reopened for review 🔍"
-        : " — ready for review ✅";
-      triggerOnboardingFlow(cardName);
-    } else if (listAfter === "to do") {
-      customMessage += " — ticket sent back for revision 🔁";
-    } else if (listAfter === "completed") {
-      customMessage += " — completed 🎉";
-    } else if (listAfter === "in progress") {
-      customMessage += listBefore === "approval"
-        ? " — sent back for rework 🔧"
-        : " — work in progress 🚧";
-    } else if (listAfter === "archived") {
-      customMessage += listBefore === "completed"
-        ? " — archived after completion 🗃️"
-        : " — archived 🗃️";
-    } else if (listBefore === "archived" && listAfter === "completed") {
-      customMessage += " — restored from archive 🔄";
-    } else {
-      customMessage += " — status updated 📌";
-    }
-
-    sendEmailNotification(cardName, listBeforeRaw, listAfterRaw, customMessage, cardUrl, dueDate, members);
-  } else {
-    console.log("Card moved, but not between tracked lists.");
   }
+
+  // ✅ Get member names
+  let members = "No members assigned";
+  if (card.idMembers?.length) {
+    const memberNames = await getMemberNames(card.idMembers);
+    members = memberNames.length ? memberNames.join(", ") : members;
+  }
+
+  // ✅ Build custom message
+  let customMessage = `Card moved from "${listBeforeRaw}" to "${listAfterRaw}"`;
+
+  if (listAfter === "approval") {
+    customMessage += listBefore === "completed"
+      ? " — reopened for review 🔍"
+      : " — ready for review ✔️";
+    triggerOnboardingFlow(cardName);
+  } else if (listAfter === "to do") {
+    customMessage += " — ticket sent back for revision 🔁";
+  } else if (listAfter === "completed") {
+    customMessage += " — completed 🎉";
+  } else if (listAfter === "in progress") {
+    customMessage += listBefore === "approval"
+      ? " — sent back for rework 🔧"
+      : " — work in progress 🚧";
+  } else if (listAfter === "archived") {
+    customMessage += listBefore === "completed"
+      ? " — archived after completion 🗃️"
+      : " — archived 🗃️";
+  } else if (listBefore === "archived" && listAfter === "completed") {
+    customMessage += " — restored from archive 🔄";
+  } else {
+    customMessage += " — status updated 📌";
+  }
+
+  // ✅ Send email
+  sendEmailNotification(cardName, listBeforeRaw, listAfterRaw, customMessage, cardUrl, dueDate, members);
 
   res.status(200).send("OK");
 });
