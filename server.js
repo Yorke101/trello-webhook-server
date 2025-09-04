@@ -6,13 +6,18 @@ const axios = require("axios");
 const app = express();
 app.use(bodyParser.json());
 
-// ✅ Respond to Trello's HEAD validation
+// ✅ Trello HEAD validation
 app.head("/trello-webhook", (req, res) => {
   console.log("Received Trello HEAD validation");
   res.status(200).send();
 });
 
-// ✅ Handle Trello webhook POST requests
+// ✅ Basic health check
+app.get("/", (req, res) => {
+  res.send("Server is alive");
+});
+
+// ✅ Trello webhook POST handler
 app.post("/trello-webhook", async (req, res) => {
   console.log("Webhook received");
   console.log("Payload:", JSON.stringify(req.body, null, 2));
@@ -82,7 +87,7 @@ app.post("/trello-webhook", async (req, res) => {
   res.status(200).send("OK");
 });
 
-// ✅ Fetch member names from Trello API
+// ✅ Fetch Trello member names
 async function getMemberNames(idMembers) {
   const key = process.env.TRELLO_API_KEY;
   const token = process.env.TRELLO_TOKEN;
@@ -97,7 +102,7 @@ async function getMemberNames(idMembers) {
   return Promise.all(namePromises);
 }
 
-// ✅ Send HTML email notification
+// ✅ Send email notification
 function sendEmailNotification(cardName, listBefore, listAfter, customMessage, cardUrl, dueDate, members) {
   console.log("Preparing to send email...");
 
@@ -154,7 +159,8 @@ function triggerOnboardingFlow(cardName) {
   });
 }
 
-// ✅ Start the server with dynamic port for Renders
-app.head("/trello-webhook", (req, res) => {
-  res.status(200).send();
+// ✅ Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Webhook server running on port ${port}`);
 });
