@@ -12,26 +12,47 @@ app.head("/trello-webhook", (req, res) => {
   res.status(200).send();
 });
 
-// ✅ Basic health check
+// ✅ Health check
 app.get("/", (req, res) => {
   res.send("Server is alive");
 });
 
-// ✅ Trello webhook POST handler
+// ✅ Webhook handler
 app.post("/trello-webhook", async (req, res) => {
   console.log("Webhook received");
-  const action = req.body.action;
-  const card = action?.data?.card;
 
-  if (!card || !card.name) {
+  const action = req.body.action;
+  let card = action?.data?.card;
+
+  if (!card?.id) {
     console.log("No card data found.");
     return res.status(200).send("OK");
   }
 
+  // ✅ Fetch full card details
+  try {
+    const key = process.env.TRELLO_API_KEY;
+    const token = process.env.TRELLO_TOKEN;
+    const response = await axios.get(`https://api.trello.com/1/cards/${card.id}?key=${key}&token=${token}`);
+    card = response.data;
+  } catch (err) {
+    console.error("Failed to fetch full card data:", err.message);
+    return res.status(200).send("OK");
+  }
+
   const cardName = card.name;
-  const cardUrl = card.shortLink
-    ? `https://trello.com/c/${card.shortLink}`
-    : "https://trello.com";
+  const cardUrl = `https://trello.com/c/${card.shortLink}`;
+  const dueDate = card.due
+    ? new Date(card.due).toLocaleString("en-ZA", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    : "No due date";
+
   const listBeforeRaw = action?.data?.listBefore?.name || "Unknown";
   const listAfterRaw = action?.data?.listAfter?.name || "Unknown";
   const listBefore = listBeforeRaw.trim().toLowerCase();
@@ -43,23 +64,6 @@ app.post("/trello-webhook", async (req, res) => {
 
   console.log(`Card "${cardName}" moved from "${listBeforeRaw}" to "${listAfterRaw}"`);
 
-  // ✅ Format due date
-  let dueDate = "No due date";
-  if (card.due) {
-    try {
-      dueDate = new Date(card.due).toLocaleString("en-ZA", {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    } catch (err) {
-      console.error("Date parsing error:", err.message);
-    }
-  }
-
   // ✅ Get member names
   let members = "No members assigned";
   if (card.idMembers?.length) {
@@ -67,7 +71,7 @@ app.post("/trello-webhook", async (req, res) => {
     members = memberNames.length ? memberNames.join(", ") : members;
   }
 
-  // ✅ Build custom message
+  // ✅ Build message
   let customMessage = `Card moved from "${listBeforeRaw}" to "${listAfterRaw}"`;
 
   if (listAfter === "approval") {
@@ -82,7 +86,7 @@ app.post("/trello-webhook", async (req, res) => {
   } else if (listAfter === "in progress") {
     customMessage += listBefore === "approval"
       ? " — sent back for rework 🔧"
-      : " — work in progress 🚧";
+      : " — work in progress 🛠";
   } else if (listAfter === "archived") {
     customMessage += listBefore === "completed"
       ? " — archived after completion 🗃️"
@@ -99,7 +103,7 @@ app.post("/trello-webhook", async (req, res) => {
   res.status(200).send("OK");
 });
 
-// ✅ Fetch Trello member names
+// ✅ Member name lookup
 async function getMemberNames(idMembers) {
   const key = process.env.TRELLO_API_KEY;
   const token = process.env.TRELLO_TOKEN;
@@ -114,7 +118,7 @@ async function getMemberNames(idMembers) {
   return Promise.all(namePromises);
 }
 
-// ✅ Send email notification
+// ✅ Email sender
 function sendEmailNotification(cardName, listBefore, listAfter, customMessage, cardUrl, dueDate, members) {
   console.log("Preparing to send email...");
 
@@ -154,24 +158,13 @@ function sendEmailNotification(cardName, listBefore, listAfter, customMessage, c
   });
 }
 
-// ✅ Trigger onboarding flow
+// ✅ Onboarding trigger (mocked)
 function triggerOnboardingFlow(cardName) {
-  console.log(`Triggering onboarding for "${cardName}"`);
-
-  axios.post("https://your-onboarding-api.com/start", {
-    cardName: cardName,
-    source: "Trello",
-    timestamp: new Date().toISOString()
-  })
-  .then(response => {
-    console.log("Onboarding triggered:", response.data);
-  })
-  .catch(error => {
-    console.error("Onboarding error:", error.message);
-  });
+  console.log(`(Mock) Triggering onboarding for "${cardName}"`);
+  // Replace with real endpoint when ready
+  // axios.post("https://your-real-onboarding-api.com/start", { ... })
 }
 
-// ✅ Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Webhook server running on port ${port}`);
