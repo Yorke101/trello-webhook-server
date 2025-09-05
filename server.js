@@ -94,7 +94,7 @@ app.post("/trello-webhook", async (req, res) => {
   } else if (listBefore === "archived" && listAfter === "completed") {
     customMessage += " — restored from archive 🔄";
   } else {
-    customMessage += " — status updated 📌";
+    customMessage += " — status has been updated 📌";
   }
 
   // ✅ Send email
