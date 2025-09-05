@@ -22,6 +22,17 @@ app.post("/trello-webhook", async (req, res) => {
   console.log("Webhook received");
 
   const action = req.body.action;
+
+  // ✅ Filter only list movement events
+  if (
+    action?.type !== "updateCard" ||
+    !action?.data?.listBefore ||
+    !action?.data?.listAfter
+  ) {
+    console.log("Ignoring non-list movement event");
+    return res.status(200).send("OK");
+  }
+
   let card = action?.data?.card;
 
   if (!card?.id) {
@@ -53,8 +64,8 @@ app.post("/trello-webhook", async (req, res) => {
       })
     : "No due date";
 
-  const listBeforeRaw = action?.data?.listBefore?.name || "Unknown";
-  const listAfterRaw = action?.data?.listAfter?.name || "Unknown";
+  const listBeforeRaw = action.data.listBefore.name || "Unknown";
+  const listAfterRaw = action.data.listAfter.name || "Unknown";
   const listBefore = listBeforeRaw.trim().toLowerCase();
   const listAfter = listAfterRaw.trim().toLowerCase();
 
@@ -94,7 +105,7 @@ app.post("/trello-webhook", async (req, res) => {
   } else if (listBefore === "archived" && listAfter === "completed") {
     customMessage += " — restored from archive 🔄";
   } else {
-    customMessage += " — status has been updated 📌";
+    customMessage += " — status updated 📌";
   }
 
   // ✅ Send email
