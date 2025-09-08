@@ -2,13 +2,11 @@ const axios = require("axios");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 
-// 🔐 Your credentials
-const appId = "d8aa7532-81ca-4eef-88f8-7949a4d8268e";
-const appKey = "3cf1d88b-9f46-4782-aea0-b4c55ae15425";
-const accessKey = "mYtOL3XZCOwG96BOiFTZRm-vnzZRkTDGmbL9EMJGFnMnka4VASVMXeDM3oGIICpKvCeUROktmg0m_iDASi13FtPCNO3jANVLWkdr6_iydeltFmUHD2VjwzTHRfeOKs4eduHgrJjpvilcF3FNNLG7pQ";
-const secretKey = "/GWVWrxBZNGM/FxHr/UGvEzZIVgplgLOMiRkAk6lYY5Si6dC3EjpPDhnrR8pC7vk9vNpvR9abJeSPVJ+tpcBUQ==";
+const appId = process.env.MC_APP_ID;
+const appKey = process.env.MC_APP_KEY;
+const accessKey = process.env.MC_ACCESS_KEY;
+const secretKey = process.env.MC_SECRET_KEY;
 
-// 🕒 Generate headers
 function generateHeaders(method, uri) {
   const date = new Date().toUTCString();
   const reqId = uuidv4();
@@ -26,8 +24,7 @@ function generateHeaders(method, uri) {
   };
 }
 
-// 📬 Email sender
-module.exports = async function sendEmail({ to, subject, body }) {
+module.exports = async function sendMimecastEmail({ to, subject, body }) {
   const headers = generateHeaders("POST", "/api/email/send-email");
 
   const payload = {
@@ -35,7 +32,7 @@ module.exports = async function sendEmail({ to, subject, body }) {
       {
         to: [{ emailAddress: to, displayableName: "Trello Notification" }],
         from: {
-          emailAddress: "davidk@atkv.org.za@", // must be permitted by Mimecast
+          emailAddress: "notifications@x.org.za", // must be permitted
           displayableName: "Trello Bot"
         },
         subject: subject,
@@ -45,20 +42,17 @@ module.exports = async function sendEmail({ to, subject, body }) {
   };
 
   try {
-  const response = await axios.post(
-    "https://za-api.mimecast.com/api/email/send-email",
-    payload,
-    { headers }
-  );
+    const response = await axios.post("https://za-api.mimecast.com/api/email/send-email", payload, { headers });
 
-  console.log("✅ Mimecast response status:", response.data.meta?.status);
+    console.log("✅ Mimecast response status:", response.data.meta?.status);
 
-  if (response.data.fail?.length) {
-    console.error("❌ Mimecast delivery failed:", JSON.stringify(response.data.fail, null, 2));
-    console.log("Mimecast fail errors:", response.data.fail?.[0]?.errors);
-  } else {
-    console.log("🎉 Email accepted by Mimecast with no delivery errors");
+    if (response.data.fail?.length) {
+      console.error("❌ Mimecast delivery failed:", JSON.stringify(response.data.fail, null, 2));
+      console.log("Mimecast fail errors:", response.data.fail?.[0]?.errors);
+    } else {
+      console.log("🎉 Email accepted by Mimecast with no delivery errors");
+    }
+  } catch (error) {
+    console.error("❌ Mimecast error:", error.response?.data || error.message);
   }
-} catch (error) {
-  console.error("❌ Mimecast error:", error.response?.data || error.message);
-}
+};

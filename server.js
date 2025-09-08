@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
-const sendMimecastEmail = require("./sendMimecastEmail"); // 👈 new email engine
+const sendMimecastEmail = require("./sendMimecastEmail");
 
 const app = express();
 app.use(bodyParser.json());
@@ -23,7 +23,6 @@ app.post("/trello-webhook", async (req, res) => {
 
   const action = req.body.action;
 
-  // ✅ Filter only list movement events
   if (
     action?.type !== "updateCard" ||
     !action?.data?.listBefore ||
@@ -40,7 +39,6 @@ app.post("/trello-webhook", async (req, res) => {
     return res.status(200).send("OK");
   }
 
-  // ✅ Fetch full card details
   try {
     const key = process.env.TRELLO_API_KEY;
     const token = process.env.TRELLO_TOKEN;
@@ -69,20 +67,14 @@ app.post("/trello-webhook", async (req, res) => {
   const listBefore = listBeforeRaw.trim().toLowerCase();
   const listAfter = listAfterRaw.trim().toLowerCase();
 
-  const importantLists = [
-    "to do", "in progress", "approval", "completed", "archived"
-  ];
-
   console.log(`Card "${cardName}" moved from "${listBeforeRaw}" to "${listAfterRaw}"`);
 
-  // ✅ Get member names
   let members = "No members assigned";
   if (card.idMembers?.length) {
     const memberNames = await getMemberNames(card.idMembers);
     members = memberNames.length ? memberNames.join(", ") : members;
   }
 
-  // ✅ Build message
   let customMessage = `Card moved from "${listBeforeRaw}" to "${listAfterRaw}"`;
 
   if (listAfter === "approval") {
@@ -108,13 +100,11 @@ app.post("/trello-webhook", async (req, res) => {
     customMessage += " — status updated 📌";
   }
 
-  // ✅ Send email via Mimecast
   await sendEmailNotification(cardName, listBeforeRaw, listAfterRaw, customMessage, cardUrl, dueDate, members);
 
   res.status(200).send("OK");
 });
 
-// ✅ Member name lookup
 async function getMemberNames(idMembers) {
   const key = process.env.TRELLO_API_KEY;
   const token = process.env.TRELLO_TOKEN;
@@ -129,7 +119,6 @@ async function getMemberNames(idMembers) {
   return Promise.all(namePromises);
 }
 
-// ✅ Mimecast email sender
 async function sendEmailNotification(cardName, listBefore, listAfter, customMessage, cardUrl, dueDate, members) {
   console.log("Preparing to send Mimecast email...");
 
@@ -151,10 +140,8 @@ Link: ${cardUrl}
   });
 }
 
-// ✅ Onboarding trigger (mocked)
 function triggerOnboardingFlow(cardName) {
   console.log(`(Mock) Triggering onboarding for "${cardName}"`);
-  // Replace with real endpoint when ready
 }
 
 const port = process.env.PORT || 3000;
