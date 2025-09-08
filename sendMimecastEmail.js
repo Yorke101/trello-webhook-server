@@ -28,18 +28,22 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
   const headers = generateHeaders("POST", "/api/email/send-email");
 
   const payload = {
-    data: [
-      {
-        to: [{ emailAddress: to, displayableName: "Trello Notification" }],
-        from: {
-          emailAddress: "davidk@atkv.org.za", // must be permitted
-          displayableName: "Trello Bot"
-        },
-        subject: subject,
-        plainBody: { content: body }
-      }
-    ]
-  };
+  data: [
+    {
+      to: [{
+        emailAddress: to,
+        displayableName: "Trello Notification"
+      }],
+      from: {
+        emailAddress: "davidk@atkv.org.za", // must be permitted
+        displayableName: "Trello Bot"
+      },
+      subject: subject,
+      plainBody: { content: body }
+    }
+  ]
+};
+
 
   try {
   const response = await axios.post(
