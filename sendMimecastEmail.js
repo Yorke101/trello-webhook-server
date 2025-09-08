@@ -1,19 +1,48 @@
 const axios = require("axios");
+const crypto = require("crypto");
+const { v4: uuidv4 } = require("uuid");
 
-// 🚀 Main email sender (minimal required headers)
+// 🔐 Environment variables
+const appId = process.env.MC_APP_ID;
+const appKey = process.env.MC_APP_KEY;
+
+// 🚀 Main email sender (with full Mimecast authentication headers)
 module.exports = async function sendMimecastEmail({ to, subject, body }) {
   try {
     console.log("📬 sendMimecastEmail function triggered");
+
+    // 🔐 ENV CHECK:
+    console.log("MC_APP_ID:", appId);
+    console.log("MC_APP_KEY:", appKey);
 
     // 🕒 Server time
     const date = new Date().toUTCString();
     console.log("🕒 Server time:", date);
 
-    // Minimal required headers (add x-mc-app-id)
+    // Unique request ID
+    const reqId = uuidv4();
+
+    // Construct the string to sign for Mimecast HMAC
+    const method = "POST";
+    const uri = "/api/email/send-email";
+    const stringToSign = `${date}:${reqId}:${method}:${uri}`;
+
+    let signature;
+    try {
+      signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
+    } catch (err) {
+      console.error("❌ Signature generation failed:", err.message);
+      return;
+    }
+
+    // Headers required by Mimecast API
     const headers = {
+      "Authorization": `MC ${appId}:${signature}`,
+      "x-mc-date": date,
+      "x-mc-req-id": reqId,
+      "x-mc-app-id": appId,
       "Content-Type": "application/json",
-      "Accept": "*/*",
-      "x-mc-app-id": process.env.MC_APP_ID
+      "Accept": "*/*"
     };
 
     const payload = {
@@ -24,7 +53,7 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
             displayableName: "Trello Notification"
           }],
           from: {
-            emailAddress: "noreply@kommunikasie.atkv.org.za", // must be delegated
+            emailAddress: "noreply@kommunikasie.atkv.org.za", // must be delegated in Mimecast
             displayableName: "ATKV Trello Bot"
           },
           subject: subject,
