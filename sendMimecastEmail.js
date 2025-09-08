@@ -1,63 +1,18 @@
 const axios = require("axios");
-const crypto = require("crypto");
-const { v4: uuidv4 } = require("uuid");
 
-// 🔐 Environment variables
-const appId = process.env.MC_APP_ID;
-const appKey = process.env.MC_APP_KEY;
-const accessKey = process.env.MC_ACCESS_KEY;
-const secretKey = process.env.MC_SECRET_KEY;
-
-// 🚀 Main email sender
+// 🚀 Main email sender (no Mimecast auth headers)
 module.exports = async function sendMimecastEmail({ to, subject, body }) {
   try {
     console.log("📬 sendMimecastEmail function triggered");
-
-    // 🔐 Environment check
-    console.log("🔐 ENV CHECK:");
-    console.log("MC_APP_ID:", appId);
-    console.log("MC_APP_KEY:", appKey);
-    console.log("MC_ACCESS_KEY:", accessKey);
-    console.log("MC_SECRET_KEY:", secretKey);
-
-    // 🔍 Type checks
-    console.log("🔍 Type checks:");
-    console.log("typeof MC_APP_ID:", typeof appId);
-    console.log("typeof MC_APP_KEY:", typeof appKey);
-    console.log("typeof MC_ACCESS_KEY:", typeof accessKey);
-    console.log("typeof MC_SECRET_KEY:", typeof secretKey);
 
     // 🕒 Server time
     const date = new Date().toUTCString();
     console.log("🕒 Server time:", date);
 
-    const method = "POST";
-    const uri = "/api/email/send-email";
-    const reqId = uuidv4();
-    const stringToSign = `${date}:${reqId}:${method}:${uri}`;
-
-    let signature;
-    try {
-      signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
-    } catch (err) {
-      console.error("❌ Signature generation failed:", err.message);
-      return;
-    }
-
-    // 🔍 Signature trace
-    console.log("🧾 Date:", date);
-    console.log("🧾 Req ID:", reqId);
-    console.log("🧾 Method:", method);
-    console.log("🧾 URI:", uri);
-    console.log("🧾 String to sign:", stringToSign);
-    console.log("🧾 Signature:", signature);
-
+    // Only basic headers!
     const headers = {
-      "Authorization": `MC ${appId}:${signature}`,
-      "x-mc-date": date,
-      "x-mc-req-id": reqId,
-      "x-mc-app-id": appId,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Accept": "*/*"
     };
 
     const payload = {
@@ -88,8 +43,8 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
     };
 
     console.log("📤 Attempting to send email to:", to);
-    console.log("📦 Final headers sent:", JSON.stringify(headers, null, 2));
-    console.log("📨 Final payload sent:", JSON.stringify(payload, null, 2));
+    console.log("📦 Headers sent:", JSON.stringify(headers, null, 2));
+    console.log("📨 Payload sent:", JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
       "https://za-api.mimecast.com/api/email/send-email",
