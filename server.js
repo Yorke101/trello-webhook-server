@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const nodemailer = require("nodemailer");
 const axios = require("axios");
+const sendMimecastEmail = require("./sendMimecastEmail"); // 👈 new email engine
 
 const app = express();
 app.use(bodyParser.json());
@@ -108,8 +108,8 @@ app.post("/trello-webhook", async (req, res) => {
     customMessage += " — status updated 📌";
   }
 
-  // ✅ Send email
-  sendEmailNotification(cardName, listBeforeRaw, listAfterRaw, customMessage, cardUrl, dueDate, members);
+  // ✅ Send email via Mimecast
+  await sendEmailNotification(cardName, listBeforeRaw, listAfterRaw, customMessage, cardUrl, dueDate, members);
 
   res.status(200).send("OK");
 });
@@ -129,43 +129,25 @@ async function getMemberNames(idMembers) {
   return Promise.all(namePromises);
 }
 
-// ✅ Email sender
-function sendEmailNotification(cardName, listBefore, listAfter, customMessage, cardUrl, dueDate, members) {
-  console.log("Preparing to send email...");
+// ✅ Mimecast email sender
+async function sendEmailNotification(cardName, listBefore, listAfter, customMessage, cardUrl, dueDate, members) {
+  console.log("Preparing to send Mimecast email...");
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  const body = `
+Card: ${cardName}
+Moved from: ${listBefore}
+Moved to: ${listAfter}
+Due Date: ${dueDate}
+Members: ${members}
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
+${customMessage}
+Link: ${cardUrl}
+`;
+
+  await sendMimecastEmail({
     to: process.env.EMAIL_TO,
     subject: `Trello Update: ${cardName}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2 style="color: #0079BF;">Trello Card Update</h2>
-        <p><strong>Card:</strong> <a href="${cardUrl}" target="_blank">${cardName}</a></p>
-        <p><strong>Moved from:</strong> ${listBefore}</p>
-        <p><strong>Moved to:</strong> ${listAfter}</p>
-        <p><strong>Due Date:</strong> ${dueDate}</p>
-        <p><strong>Members:</strong> ${members}</p>
-        <p style="margin-top: 20px;">${customMessage}</p>
-        <hr>
-        <small>This notification was triggered by your Trello webhook automation.</small>
-      </div>
-    `
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Email error:", error);
-    } else {
-      console.log("Email sent:", info.response);
-    }
+    body
   });
 }
 
@@ -173,7 +155,6 @@ function sendEmailNotification(cardName, listBefore, listAfter, customMessage, c
 function triggerOnboardingFlow(cardName) {
   console.log(`(Mock) Triggering onboarding for "${cardName}"`);
   // Replace with real endpoint when ready
-  // axios.post("https://your-real-onboarding-api.com/start", { ... })
 }
 
 const port = process.env.PORT || 3000;
