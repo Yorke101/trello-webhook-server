@@ -35,15 +35,28 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
     data: [
       {
         to: [{
-          emailAddress: "dylany@atkv.org.za",
+          emailAddress: to,
           displayableName: "Trello Notification"
         }],
         from: {
           emailAddress: "noreply@kommunikasie.atkv.org.za", // must be permitted
-          displayableName: "Trello Bot"
+          displayableName: "ATKV Trello Bot"
         },
         subject: subject,
-        plainBody: { content: body }
+        htmlBody: {
+          content: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+              <h2 style="color: #0055a5;">Trello Update</h2>
+              <p><strong>Card:</strong> ${subject}</p>
+              <p><strong>Details:</strong></p>
+              <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 4px;">${body}</pre>
+              <p style="margin-top: 20px;">Sent via ATKV Trello Automation</p>
+            </div>
+          `
+        },
+        plainBody: {
+          content: body
+        }
       }
     ]
   };
