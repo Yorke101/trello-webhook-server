@@ -10,18 +10,30 @@ const secretKey = process.env.MC_SECRET_KEY;
 
 // 🚀 Main email sender
 module.exports = async function sendMimecastEmail({ to, subject, body }) {
+  console.log("📬 sendMimecastEmail function triggered");
+
+  // 🔐 Environment check
+  console.log("🔐 ENV CHECK:");
+  console.log("MC_APP_ID:", appId);
+  console.log("MC_APP_KEY:", appKey);
+  console.log("MC_ACCESS_KEY:", accessKey);
+  console.log("MC_SECRET_KEY:", secretKey);
+
   const method = "POST";
   const uri = "/api/email/send-email";
   const date = new Date().toUTCString();
   const reqId = uuidv4();
   const stringToSign = `${date}:${reqId}:${method}:${uri}`;
-  const signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
 
-  // 🔍 Full debug logs
-  console.log("🧾 App ID:", appId);
-  console.log("🧾 App Key:", appKey);
-  console.log("🧾 Access Key:", accessKey);
-  console.log("🧾 Secret Key:", secretKey);
+  let signature;
+  try {
+    signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
+  } catch (err) {
+    console.error("❌ Signature generation failed:", err.message);
+    return;
+  }
+
+  // 🔍 Signature trace
   console.log("🧾 Date:", date);
   console.log("🧾 Req ID:", reqId);
   console.log("🧾 Method:", method);
@@ -64,10 +76,11 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
     ]
   };
 
-  try {
-    console.log("📦 Headers:", headers);
-    console.log("📨 Payload:", JSON.stringify(payload, null, 2));
+  console.log("📤 Attempting to send email to:", to);
+  console.log("📦 Headers:", headers);
+  console.log("📨 Payload:", JSON.stringify(payload, null, 2));
 
+  try {
     const response = await axios.post(
       "https://za-api.mimecast.com/api/email/send-email",
       payload,
