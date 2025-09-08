@@ -32,7 +32,7 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
       {
         to: [{ emailAddress: to, displayableName: "Trello Notification" }],
         from: {
-          emailAddress: "notifications@x.org.za", // must be permitted
+          emailAddress: "davidk@atkv.org.za", // must be permitted
           displayableName: "Trello Bot"
         },
         subject: subject,
