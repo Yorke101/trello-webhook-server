@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-// 🚀 Main email sender (no Mimecast auth headers)
+// 🚀 Main email sender (minimal required headers)
 module.exports = async function sendMimecastEmail({ to, subject, body }) {
   try {
     console.log("📬 sendMimecastEmail function triggered");
@@ -9,10 +9,11 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
     const date = new Date().toUTCString();
     console.log("🕒 Server time:", date);
 
-    // Only basic headers!
+    // Minimal required headers (add x-mc-app-id)
     const headers = {
       "Content-Type": "application/json",
-      "Accept": "*/*"
+      "Accept": "*/*",
+      "x-mc-app-id": process.env.MC_APP_ID
     };
 
     const payload = {
