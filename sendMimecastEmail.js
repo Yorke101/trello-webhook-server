@@ -10,77 +10,87 @@ const secretKey = process.env.MC_SECRET_KEY;
 
 // 🚀 Main email sender
 module.exports = async function sendMimecastEmail({ to, subject, body }) {
-  console.log("📬 sendMimecastEmail function triggered");
-
-  // 🔐 Environment check
-  console.log("🔐 ENV CHECK:");
-  console.log("MC_APP_ID:", appId);
-  console.log("MC_APP_KEY:", appKey);
-  console.log("MC_ACCESS_KEY:", accessKey);
-  console.log("MC_SECRET_KEY:", secretKey);
-
-  const method = "POST";
-  const uri = "/api/email/send-email";
-  const date = new Date().toUTCString();
-  const reqId = uuidv4();
-  const stringToSign = `${date}:${reqId}:${method}:${uri}`;
-
-  let signature;
   try {
-    signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
-  } catch (err) {
-    console.error("❌ Signature generation failed:", err.message);
-    return;
-  }
+    console.log("📬 sendMimecastEmail function triggered");
 
-  // 🔍 Signature trace
-  console.log("🧾 Date:", date);
-  console.log("🧾 Req ID:", reqId);
-  console.log("🧾 Method:", method);
-  console.log("🧾 URI:", uri);
-  console.log("🧾 String to sign:", stringToSign);
-  console.log("🧾 Signature:", signature);
+    // 🔐 Environment check
+    console.log("🔐 ENV CHECK:");
+    console.log("MC_APP_ID:", appId);
+    console.log("MC_APP_KEY:", appKey);
+    console.log("MC_ACCESS_KEY:", accessKey);
+    console.log("MC_SECRET_KEY:", secretKey);
 
-  const headers = {
-    "Authorization": `MC ${appId}:${signature}`,
-    "x-mc-date": date,
-    "x-mc-req-id": reqId,
-    "x-mc-app-id": appId,
-    "Content-Type": "application/json"
-  };
+    // 🔍 Type checks
+    console.log("🔍 Type checks:");
+    console.log("typeof MC_APP_ID:", typeof appId);
+    console.log("typeof MC_APP_KEY:", typeof appKey);
+    console.log("typeof MC_ACCESS_KEY:", typeof accessKey);
+    console.log("typeof MC_SECRET_KEY:", typeof secretKey);
 
-  const payload = {
-    data: [
-      {
-        to: [{
-          emailAddress: to,
-          displayableName: "Trello Notification"
-        }],
-        from: {
-          emailAddress: "noreply@kommunikasie.atkv.org.za", // must be delegated
-          displayableName: "ATKV Trello Bot"
-        },
-        subject: subject,
-        htmlBody: {
-          content: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-              <h2 style="color: #0055a5;">Trello Update</h2>
-              <p><strong>Card:</strong> ${subject}</p>
-              <p><strong>Details:</strong></p>
-              <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 4px;">${body}</pre>
-              <p style="margin-top: 20px;">Sent via ATKV Trello Automation</p>
-            </div>
-          `
+    // 🕒 Server time
+    const date = new Date().toUTCString();
+    console.log("🕒 Server time:", date);
+
+    const method = "POST";
+    const uri = "/api/email/send-email";
+    const reqId = uuidv4();
+    const stringToSign = `${date}:${reqId}:${method}:${uri}`;
+
+    let signature;
+    try {
+      signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
+    } catch (err) {
+      console.error("❌ Signature generation failed:", err.message);
+      return;
+    }
+
+    // 🔍 Signature trace
+    console.log("🧾 Date:", date);
+    console.log("🧾 Req ID:", reqId);
+    console.log("🧾 Method:", method);
+    console.log("🧾 URI:", uri);
+    console.log("🧾 String to sign:", stringToSign);
+    console.log("🧾 Signature:", signature);
+
+    const headers = {
+      "Authorization": `MC ${appId}:${signature}`,
+      "x-mc-date": date,
+      "x-mc-req-id": reqId,
+      "x-mc-app-id": appId,
+      "Content-Type": "application/json"
+    };
+
+    const payload = {
+      data: [
+        {
+          to: [{
+            emailAddress: to,
+            displayableName: "Trello Notification"
+          }],
+          from: {
+            emailAddress: "noreply@kommunikasie.atkv.org.za", // must be delegated
+            displayableName: "ATKV Trello Bot"
+          },
+          subject: subject,
+          htmlBody: {
+            content: `
+              <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+                <h2 style="color: #0055a5;">Trello Update</h2>
+                <p><strong>Card:</strong> ${subject}</p>
+                <p><strong>Details:</strong></p>
+                <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 4px;">${body}</pre>
+                <p style="margin-top: 20px;">Sent via ATKV Trello Automation</p>
+              </div>
+            `
+          }
         }
-      }
-    ]
-  };
+      ]
+    };
 
-  console.log("📤 Attempting to send email to:", to);
-  console.log("📦 Headers:", headers);
-  console.log("📨 Payload:", JSON.stringify(payload, null, 2));
+    console.log("📤 Attempting to send email to:", to);
+    console.log("📦 Final headers sent:", JSON.stringify(headers, null, 2));
+    console.log("📨 Final payload sent:", JSON.stringify(payload, null, 2));
 
-  try {
     const response = await axios.post(
       "https://za-api.mimecast.com/api/email/send-email",
       payload,
@@ -99,7 +109,7 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
     } else {
       console.log("🎉 Email accepted by Mimecast with no delivery errors");
     }
-  } catch (error) {
-    console.error("❌ Mimecast error:", error.response?.data || error.message);
+  } catch (err) {
+    console.error("🔥 Top-level error caught:", err.message);
   }
 };
