@@ -45,9 +45,20 @@ module.exports = async function sendEmail({ to, subject, body }) {
   };
 
   try {
-    const response = await axios.post("https://za-api.mimecast.com/api/email/send-email", payload, { headers });
-    console.log("✅ Email sent:", response.data);
-  } catch (error) {
-    console.error("❌ Error sending email:", error.response?.data || error.message);
+  const response = await axios.post(
+    "https://za-api.mimecast.com/api/email/send-email",
+    payload,
+    { headers }
+  );
+
+  console.log("✅ Mimecast response status:", response.data.meta?.status);
+
+  if (response.data.fail?.length) {
+    console.error("❌ Mimecast delivery failed:", JSON.stringify(response.data.fail, null, 2));
+    console.log("Mimecast fail errors:", response.data.fail?.[0]?.errors);
+  } else {
+    console.log("🎉 Email accepted by Mimecast with no delivery errors");
   }
-};
+} catch (error) {
+  console.error("❌ Mimecast error:", error.response?.data || error.message);
+}
