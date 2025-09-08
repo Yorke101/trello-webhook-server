@@ -17,6 +17,17 @@ function generateHeaders(method, uri) {
 
   console.log("🧾 String to sign:", stringToSign);
   console.log("🔐 Signature:", signature);
+// Debug logs
+console.log("🧾 App ID:", appId);
+console.log("🧾 App Key:", appKey);
+console.log("🧾 Access Key:", accessKey);
+console.log("🧾 Secret Key:", secretKey);
+console.log("🧾 Date:", date);
+console.log("🧾 Req ID:", reqId);
+console.log("🧾 Method:", method);
+console.log("🧾 URI:", uri);
+console.log("🧾 String to sign:", stringToSign);
+console.log("🧾 Signature:", signature);
 
   return {
     "Authorization": `MC ${appId}:${signature}`,
