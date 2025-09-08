@@ -8,39 +8,34 @@ const appKey = process.env.MC_APP_KEY;
 const accessKey = process.env.MC_ACCESS_KEY;
 const secretKey = process.env.MC_SECRET_KEY;
 
-// 🧠 Header generator
-function generateHeaders(method, uri) {
+// 🚀 Main email sender
+module.exports = async function sendMimecastEmail({ to, subject, body }) {
+  const method = "POST";
+  const uri = "/api/email/send-email";
   const date = new Date().toUTCString();
   const reqId = uuidv4();
   const stringToSign = `${date}:${reqId}:${method}:${uri}`;
   const signature = crypto.createHmac("sha1", appKey).update(stringToSign).digest("base64");
 
+  // 🔍 Full debug logs
+  console.log("🧾 App ID:", appId);
+  console.log("🧾 App Key:", appKey);
+  console.log("🧾 Access Key:", accessKey);
+  console.log("🧾 Secret Key:", secretKey);
+  console.log("🧾 Date:", date);
+  console.log("🧾 Req ID:", reqId);
+  console.log("🧾 Method:", method);
+  console.log("🧾 URI:", uri);
   console.log("🧾 String to sign:", stringToSign);
-  console.log("🔐 Signature:", signature);
-// Debug logs
-console.log("🧾 App ID:", appId);
-console.log("🧾 App Key:", appKey);
-console.log("🧾 Access Key:", accessKey);
-console.log("🧾 Secret Key:", secretKey);
-console.log("🧾 Date:", date);
-console.log("🧾 Req ID:", reqId);
-console.log("🧾 Method:", method);
-console.log("🧾 URI:", uri);
-console.log("🧾 String to sign:", stringToSign);
-console.log("🧾 Signature:", signature);
+  console.log("🧾 Signature:", signature);
 
-  return {
+  const headers = {
     "Authorization": `MC ${appId}:${signature}`,
     "x-mc-date": date,
     "x-mc-req-id": reqId,
     "x-mc-app-id": appId,
     "Content-Type": "application/json"
   };
-}
-
-// 🚀 Main email sender
-module.exports = async function sendMimecastEmail({ to, subject, body }) {
-  const headers = generateHeaders("POST", "/api/email/send-email");
 
   const payload = {
     data: [
@@ -50,7 +45,7 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
           displayableName: "Trello Notification"
         }],
         from: {
-          emailAddress: "noreply@kommunikasie.atkv.org.za", // must be permitted and delegated
+          emailAddress: "noreply@kommunikasie.atkv.org.za", // must be delegated
           displayableName: "ATKV Trello Bot"
         },
         subject: subject,
@@ -70,6 +65,9 @@ module.exports = async function sendMimecastEmail({ to, subject, body }) {
   };
 
   try {
+    console.log("📦 Headers:", headers);
+    console.log("📨 Payload:", JSON.stringify(payload, null, 2));
+
     const response = await axios.post(
       "https://za-api.mimecast.com/api/email/send-email",
       payload,
